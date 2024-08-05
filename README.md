@@ -1,5 +1,4 @@
 # whatsapp-chat-sentiment-analysis
-
 [Live App link](https://whatsapp-chat-sentiment-analysis.streamlit.app/)
 
 A streamlit app to analyze your whatsapp chats. 
