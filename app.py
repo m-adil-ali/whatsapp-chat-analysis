@@ -2,6 +2,10 @@ import streamlit as st
 import preprocessor,helper
 import matplotlib.pyplot as plt
 import seaborn as sns
+import nltk
+from nltk.sentiment import SentimentIntensityAnalyzer
+
+nltk.download('vader_lexicon')
 
 st.sidebar.title("Whatsapp Chat Analyzer")
 
@@ -13,11 +17,15 @@ if uploaded_file is not None:
 
     # fetch unique users
     user_list = df['user'].unique().tolist()
-    # user_list.remove('group_notification')
     
-    if 'group_notification' in user_list:
-        user_list.remove('group_notification')
+    #st.sidebar.title((user_list[:-1]))
+    
+    user_list.remove('group_notification')
         
+    # if 'group_notification' in user_list:
+    #      user_list.remove('group_notification')
+        
+    
     user_list.sort()
     user_list.insert(0,"Overall")
 
@@ -25,6 +33,14 @@ if uploaded_file is not None:
 
     if st.sidebar.button("Show Analysis"):
 
+        # sentiment analysis
+        st.title("Sentiment Analysis")
+        sid = SentimentIntensityAnalyzer()
+        sentiment_scores = df.apply(lambda row: sid.polarity_scores(row['message']), axis=1)
+        df['Sentiment'] = sentiment_scores.apply(lambda x: 'Positive' if x['compound'] > 0 else 'Neutral' if x['compound'] == 0 else 'Negative')
+        
+        st.write("The Sentiment Score of",selected_user,":", df['Sentiment'].mode())
+        st.markdown("---")
         # Stats Area
         num_messages, words, num_media_messages, num_links = helper.fetch_stats(selected_user,df)
         st.title("Top Statistics")
@@ -44,7 +60,7 @@ if uploaded_file is not None:
             st.title(num_links)
 
         # monthly timeline
-        st.title("Monthly Timeline")
+        st.title("Monthly Timeline:")
         timeline = helper.monthly_timeline(selected_user,df)
         fig,ax = plt.subplots()
         ax.plot(timeline['time'], timeline['message'],color='green')
@@ -52,7 +68,7 @@ if uploaded_file is not None:
         st.pyplot(fig)
 
         # daily timeline
-        st.title("Daily Timeline")
+        st.title("Daily Timeline:")
         daily_timeline = helper.daily_timeline(selected_user, df)
         fig, ax = plt.subplots()
         ax.plot(daily_timeline['only_date'], daily_timeline['message'], color='black')
@@ -60,7 +76,7 @@ if uploaded_file is not None:
         st.pyplot(fig)
 
         # activity map
-        st.title('Activity Map')
+        st.title('Activity Map:')
         col1,col2 = st.columns(2)
 
         with col1:
@@ -79,7 +95,7 @@ if uploaded_file is not None:
             plt.xticks(rotation='vertical')
             st.pyplot(fig)
 
-        st.title("Weekly Activity Map")
+        st.title("Weekly Activity Map:")
         user_heatmap = helper.activity_heatmap(selected_user,df)
         fig,ax = plt.subplots()
         ax = sns.heatmap(user_heatmap)
@@ -87,7 +103,7 @@ if uploaded_file is not None:
 
         # finding the busiest users in the group(Group level)
         if selected_user == 'Overall':
-            st.title('Most Busy Users')
+            st.title('Most Busy Users:')
             x,new_df = helper.most_busy_users(df)
             fig, ax = plt.subplots()
 
@@ -101,7 +117,7 @@ if uploaded_file is not None:
                 st.dataframe(new_df)
 
         # WordCloud
-        st.title("Wordcloud")
+        st.title("Wordcloud:")
         df_wc = helper.create_wordcloud(selected_user,df)
         fig,ax = plt.subplots()
         ax.imshow(df_wc)
@@ -110,25 +126,27 @@ if uploaded_file is not None:
         # most common words
         most_common_df = helper.most_common_words(selected_user,df)
 
+        #st.dataframe(most_common_df)
+        
         fig,ax = plt.subplots()
 
         ax.barh(most_common_df[0],most_common_df[1])
         plt.xticks(rotation='vertical')
 
-        st.title('Most commmon words')
+        st.title('Most commmon words:')
         st.pyplot(fig)
 
         # emoji analysis
         emoji_df = helper.emoji_helper(selected_user,df)
-        st.title("Emoji Analysis")
+        st.title("Emoji Analysis:")
 
         col1,col2 = st.columns(2)
 
         with col1:
-            st.dataframe(emoji_df)
+            st.dataframe(emoji_df.head(20))
         with col2:
             fig,ax = plt.subplots()
-            ax.pie(emoji_df[1].head(),labels=emoji_df[0].head(),autopct="%0.2f")
+            ax.pie(emoji_df['count'].head(),labels=emoji_df['emoji'].head(),autopct="%0.2f")
             st.pyplot(fig)
 
 
